@@ -1,6 +1,9 @@
 package chess
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+)
 
 type Piece uint8
 
@@ -63,6 +66,13 @@ func NewGame(Player *white, player *black) *Game {
 // Move moves a piece on the board.
 func (g *Game) Move(piece Piece, srcCol uint8, srcRow uint8, destCol uint8, destRow uint8) error {
 	// check validity
+	// do both source and destination squares exist?
+	if srcCol < 0 || srcCol > 7 || srcRow < 0 || srcRow > 7 {
+		return fmt.Errorf("Game.Move: invalid source square row:%d column:%d", srcRow, srcCol)
+	}
+	if destCol < 0 || destCol > 7 || destRow < 0 || destRow > 7 {
+		return fmt.Errorf("Game.Move: invalid destination square row:%d column:%d", destRow, destCol)
+	}
 	// does the piece exist?
 	if piece == empty {
 		return errors.New("Game.Move: you can't move an empty piece")
@@ -70,8 +80,31 @@ func (g *Game) Move(piece Piece, srcCol uint8, srcRow uint8, destCol uint8, dest
 	if g.board[srcRow][srcCol] != piece {
 		return errors.New("Game.Move: no such piece on that source square")
 	}
+	// can the piece actually go there?
+	valid := false
+	switch piece {
+	case whiteKing:
+		fallthrough
+	case blackKing:
+
+	case whiteQueen:
+		fallthrough
+	case blackQueen:
+	case whitePawn:
+		fallthrough
+	case blackPawn:
+
+	case whiteBishop:
+	case whiteKnight:
+	case whiteRook:
+	case blackBishop:
+	case blackKnight:
+	case blackRook:
+	}
 	// TODO: check if the position would put the mover in check
 
+	g.board[srcRow][srcCol] = empty
+	g.board[destRow][destCol] = piece
 }
 
 func (g *Game) DetermineCheck() error {
