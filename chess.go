@@ -8,6 +8,21 @@ import (
 // Piece represents a piece on a chessboard, or "empty"
 type Piece uint8
 
+// Board represents the state of a board
+type Board [8][8]Piece
+
+// Move represents a chess move on a board, with a piece, and source and destination squares.
+// For a castle, move a king onto a rook as if you are taking it.
+type Move struct {
+	piece      Piece
+	srcCol     uint8
+	srcRow     uint8
+	destCol    uint8
+	destRow    uint8
+	castle     bool
+	pawnTaking bool
+}
+
 // Here we define all the constants representing various pieces.
 const (
 	Empty       Piece = 0
@@ -25,21 +40,39 @@ const (
 	BlackRook         = 12
 )
 
+const (
+	colorBlack uint8 = 0
+	colorWhite       = 1
+	colorEmpty       = 2
+)
+
+/* const NewGamePosition [8][8]Piece = {{WhiteRook, WhiteKnight, WhiteBishop, WhiteQueen, WhiteKing, WhiteBishop, WhiteKnight, WhiteRook},
+{WhitePawn, WhitePawn, WhitePawn, WhitePawn, WhitePawn, WhitePawn, WhitePawn, WhitePawn},
+{Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty},
+{Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty},
+{Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty},
+{Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty},
+{Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty},
+{Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty},
+{BlackPawn, BlackPawn, BlackPawn, BlackPawn, BlackPawn, BlackPawn, BlackPawn, BlackPawn},
+{BlackRook, BlackKnight, BlackBishop, BlackQueen, BlackKing, BlackBishop, BlackKnight, BlackRook}}
+*/
+
+// GetColor returns the color of a piece - 0 for black, 1 for white, 2 for empty
+func (p Piece) getColor() uint8 {
+	if p == Empty {
+		return colorEmpty
+	} else if 0 < p <= 6 {
+		return colorWhite
+	} else {
+		return colorBlack
+	}
+}
+
 // abs gets the absolute value of an 8-bit integer.
 func abs(x int8) int8 {
 	var sb = x >> 7
 	return (x ^ sb) + (sb & 1)
-}
-
-// Move represents a chess move on a board, with a piece, and source and destination squares.
-// For a castle, move a king onto a rook as if you are taking it.
-type Move struct {
-	piece   Piece
-	srcCol  uint8
-	srcRow  uint8
-	destCol uint8
-	destRow uint8
-	castle  bool
 }
 
 // NewMove creates a new Move object describing a valid chess move.
@@ -106,6 +139,7 @@ func NewMove(p Piece, srcCol int8, srcRow int8, destCol int8, destRow int8) (*Mo
 		}
 		if destRow == srcRow+1 && abs(destCol-srcCol) == 1 {
 			valid = true
+			pawnTaking = true
 			break
 		}
 	case BlackPawn:
@@ -115,6 +149,7 @@ func NewMove(p Piece, srcCol int8, srcRow int8, destCol int8, destRow int8) (*Mo
 		}
 		if destRow == srcRow-1 && abs(destCol-srcCol) == 1 {
 			valid = true
+			pawnTaking = true
 			break
 		}
 
@@ -157,70 +192,31 @@ func NewMove(p Piece, srcCol int8, srcRow int8, destCol int8, destRow int8) (*Mo
 	}, nil
 }
 
-// IsLegal determines whether a move is legal to do given a certain game context.
-func (m *Move) IsLegal(g *Game) bool {
+// DetermineCheck determines whether a position on a board is in check or not.
+// Returns a color value of the color in check.
+func (b *Board) DetermineCheck() uint8 {
+	// TODO
+}
 
-	if g.Board[m.srcRow][m.srcCol] != m.piece {
+// IsLegal determines whether a move is legal to do given a certain game context.
+func (m *Move) IsLegal(b *Board) bool {
+	playerColor = m.piece.getColor()
+	if b[m.srcRow][m.srcCol] != m.piece {
 		return false // we can't move a piece that doesn't exist
 	}
-	// TODO: A nice way to check move legality
+	if b[m.destRow][m.destCol].getColor() == m.piece.getColor() && (!m.castle) {
+		return false // we can't take our own piece unless the move is representing a castle
+	}
+	if m.pawnTaking && b[m.destRow][m.destCol].getColor() != (m.piece.getColor()^1) {
+		return false // there is no piece of the other color to take
+		// TODO: en passant doesn't work yet :P
+	}
 
+	// After all the other checks determine if the position after the move is a check
+	var newBoard Board = b
+	newBoard.doMove(m)
+	if newBoard.DetermineCheck() == playerColor {
+		return false // we can't put ourself in check!
+	}
 	return true
-}
-
-// Game represents a game of chess.
-type Game struct {
-	Board          [8][8]Piece
-	MoveCounter    int32 // ??
-	BlackCanCastle bool
-	WhiteCanCastle bool
-}
-
-/* const NewGamePosition [8][8]Piece = {{WhiteRook, WhiteKnight, WhiteBishop, WhiteQueen, WhiteKing, WhiteBishop, WhiteKnight, WhiteRook},
-{WhitePawn, WhitePawn, WhitePawn, WhitePawn, WhitePawn, WhitePawn, WhitePawn, WhitePawn},
-{Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty},
-{Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty},
-{Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty},
-{Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty},
-{Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty},
-{Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty},
-{BlackPawn, BlackPawn, BlackPawn, BlackPawn, BlackPawn, BlackPawn, BlackPawn, BlackPawn},
-{BlackRook, BlackKnight, BlackBishop, BlackQueen, BlackKing, BlackBishop, BlackKnight, BlackRook}}
-*/
-
-// NewGame initializes a new Game object
-func NewGame() *Game {
-	g := Game{
-		Board: {{WhiteRook, WhiteKnight, WhiteBishop, WhiteQueen, WhiteKing, WhiteBishop, WhiteKnight, WhiteRook},
-			{WhitePawn, WhitePawn, WhitePawn, WhitePawn, WhitePawn, WhitePawn, WhitePawn, WhitePawn},
-			{Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty},
-			{Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty},
-			{Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty},
-			{Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty},
-			{Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty},
-			{Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty},
-			{BlackPawn, BlackPawn, BlackPawn, BlackPawn, BlackPawn, BlackPawn, BlackPawn, BlackPawn},
-			{BlackRook, BlackKnight, BlackBishop, BlackQueen, BlackKing, BlackBishop, BlackKnight, BlackRook}},
-		WhitePlayer:    white,
-		BlackPlayer:    black,
-		BlackCanCastle: true,
-		WhiteCanCastle: true,
-	}
-	return &g
-}
-
-// DoMove executes a move on the board.
-func (g *Game) DoMove(m *Move) error {
-	// does the piece exist?
-	if g.board[srcRow][srcCol] != m.piece {
-		return errors.New("Game.Move: no such piece on that source square")
-	}
-
-	g.board[srcRow][srcCol] = Empty
-	g.board[destRow][destCol] = m.piece
-}
-
-// DetermineCheck determines whether any players are in check.
-func (g *Game) DetermineCheck() error {
-	// TODO write the function
 }
