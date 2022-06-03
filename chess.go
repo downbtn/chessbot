@@ -46,17 +46,14 @@ const (
 	colorEmpty       = 2
 )
 
-/* const NewGamePosition [8][8]Piece = {{WhiteRook, WhiteKnight, WhiteBishop, WhiteQueen, WhiteKing, WhiteBishop, WhiteKnight, WhiteRook},
-{WhitePawn, WhitePawn, WhitePawn, WhitePawn, WhitePawn, WhitePawn, WhitePawn, WhitePawn},
-{Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty},
-{Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty},
-{Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty},
-{Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty},
-{Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty},
-{Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty},
-{BlackPawn, BlackPawn, BlackPawn, BlackPawn, BlackPawn, BlackPawn, BlackPawn, BlackPawn},
-{BlackRook, BlackKnight, BlackBishop, BlackQueen, BlackKing, BlackBishop, BlackKnight, BlackRook}}
-*/
+var NewGamePosition = Board{{WhiteRook, WhiteKnight, WhiteBishop, WhiteQueen, WhiteKing, WhiteBishop, WhiteKnight, WhiteRook},
+	{WhitePawn, WhitePawn, WhitePawn, WhitePawn, WhitePawn, WhitePawn, WhitePawn, WhitePawn},
+	{Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty},
+	{Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty},
+	{Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty},
+	{Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty},
+	{BlackPawn, BlackPawn, BlackPawn, BlackPawn, BlackPawn, BlackPawn, BlackPawn, BlackPawn},
+	{BlackRook, BlackKnight, BlackBishop, BlackQueen, BlackKing, BlackBishop, BlackKnight, BlackRook}}
 
 // GetColor returns the color of a piece - 0 for black, 1 for white, 2 for empty
 func (p Piece) getColor() uint8 {
