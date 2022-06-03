@@ -18,7 +18,7 @@ func (b *Board) Display(outputFile string, size int) error {
 		return err
 	}
 
-	var pieceFiles = [12]string{"", "king_white.png", "queen_white.png", "pawn_white.png", "bishop_white.png", "knight_white.png", "rook_white.png", "king_black.png", "queen_black.png", "pawn_black.png", "bishop_black.png", "knight_black.png", "rook_black.png"}
+	var pieceFiles = [...]string{"", "king_white.png", "queen_white.png", "pawn_white.png", "bishop_white.png", "knight_white.png", "rook_white.png", "king_black.png", "queen_black.png", "pawn_black.png", "bishop_black.png", "knight_black.png", "rook_black.png"}
 	var pieceImgs [12]image.Image
 	for i, p := range pieceFiles {
 		if i == 0 {
@@ -38,11 +38,13 @@ func (b *Board) Display(outputFile string, size int) error {
 		pieceImgs[i] = pcImg
 	}
 
-	board, err := png.Decode(fp)
+	boardImg, err := png.Decode(fp)
 	if err != nil {
 		return err
 	}
 
+	board := image.NewNRGBA(boardImg.Bounds())
+	draw.Draw(board, boardImg.Bounds(), boardImg, image.ZP, draw.Src)
 	for i, row := range b {
 		for j, square := range row {
 			if square == 0 {
@@ -59,4 +61,5 @@ func (b *Board) Display(outputFile string, size int) error {
 		return err
 	}
 	png.Encode(ofp, board)
+	return nil
 }

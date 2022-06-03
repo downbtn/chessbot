@@ -15,10 +15,10 @@ type Board [8][8]Piece
 // For a castle, move a king onto a rook as if you are taking it.
 type Move struct {
 	piece      Piece
-	srcCol     uint8
-	srcRow     uint8
-	destCol    uint8
-	destRow    uint8
+	srcCol     int8
+	srcRow     int8
+	destCol    int8
+	destRow    int8
 	castle     bool
 	pawnTaking bool
 }
@@ -62,7 +62,7 @@ const (
 func (p Piece) getColor() uint8 {
 	if p == Empty {
 		return colorEmpty
-	} else if 0 < p <= 6 {
+	} else if 0 < p && p <= 6 {
 		return colorWhite
 	} else {
 		return colorBlack
@@ -96,6 +96,7 @@ func NewMove(p Piece, srcCol int8, srcRow int8, destCol int8, destRow int8) (*Mo
 	// can the piece actually go there?
 	valid := false
 	castle := false
+	pawnTaking := false
 	switch p {
 	case WhiteKing:
 		if srcCol == 4 && srcRow == 0 && destRow == 0 && (destCol == 0 || destCol == 7) {
@@ -133,7 +134,7 @@ func NewMove(p Piece, srcCol int8, srcRow int8, destCol int8, destRow int8) (*Mo
 		}
 
 	case WhitePawn:
-		if srcCol == destCol && 0 < destRow-srcRow <= 2 {
+		if srcCol == destCol && 0 < destRow-srcRow && destRow-srcRow <= 2 {
 			valid = true
 			break
 		}
@@ -143,7 +144,7 @@ func NewMove(p Piece, srcCol int8, srcRow int8, destCol int8, destRow int8) (*Mo
 			break
 		}
 	case BlackPawn:
-		if srcCol == destCol && 0 < srcRow-destRow <= 2 {
+		if srcCol == destCol && 0 < srcRow-destRow && srcRow-destRow <= 2 {
 			valid = true
 			break
 		}
@@ -183,12 +184,13 @@ func NewMove(p Piece, srcCol int8, srcRow int8, destCol int8, destRow int8) (*Mo
 		return nil, errors.New("NewMove: the piece is not allowed to move there")
 	}
 	return &Move{
-		piece:   p,
-		srcCol:  srcCol,
-		srcRow:  srcRow,
-		destCol: destCol,
-		destRow: destRow,
-		castle:  castle,
+		piece:      p,
+		srcCol:     srcCol,
+		srcRow:     srcRow,
+		destCol:    destCol,
+		destRow:    destRow,
+		castle:     castle,
+		pawnTaking: pawnTaking,
 	}, nil
 }
 
@@ -196,11 +198,12 @@ func NewMove(p Piece, srcCol int8, srcRow int8, destCol int8, destRow int8) (*Mo
 // Returns a color value of the color in check.
 func (b *Board) DetermineCheck() uint8 {
 	// TODO
+	return 0
 }
 
 // IsLegal determines whether a move is legal to do given a certain game context.
 func (m *Move) IsLegal(b *Board) bool {
-	playerColor = m.piece.getColor()
+	playerColor := m.piece.getColor()
 	if b[m.srcRow][m.srcCol] != m.piece {
 		return false // we can't move a piece that doesn't exist
 	}
@@ -213,10 +216,15 @@ func (m *Move) IsLegal(b *Board) bool {
 	}
 
 	// After all the other checks determine if the position after the move is a check
-	var newBoard Board = b
+	newBoard := *b
 	newBoard.doMove(m)
 	if newBoard.DetermineCheck() == playerColor {
 		return false // we can't put ourself in check!
 	}
 	return true
+}
+
+func (b *Board) doMove(m *Move) {
+	b[m.srcRow][m.srcCol] = Empty
+	b[m.destRow][m.destCol] = m.piece
 }
