@@ -8,6 +8,15 @@ import (
 // Piece represents a piece on a chessboard, or "empty"
 type Piece uint8
 
+// PieceType represents a type of piece (e.g. pawn, king)
+type PieceType uint8
+
+// CheckState represents the state of who is in check on a board.
+type CheckState uint8
+
+// Color represents a color
+type Color uint8
+
 // Board represents the state of a board
 type Board [8][8]Piece
 
@@ -21,6 +30,11 @@ type Move struct {
 	destRow    int8
 	castle     bool
 	pawnTaking bool
+}
+
+type coords struct {
+	row int8
+	col int8
 }
 
 // Here we define all the constants representing various pieces.
@@ -41,9 +55,27 @@ const (
 )
 
 const (
-	colorBlack uint8 = 0
+	colorBlack Color = 0
 	colorWhite       = 1
 	colorEmpty       = 2
+)
+
+const (
+	NoCheck      CheckState = 0
+	WhiteChecked            = 1
+	BlackChecked            = 2
+	WhiteMated              = 3
+	BlackMated              = 4
+)
+
+const (
+	EmptyType PieceType = 0
+	King                = 1
+	Queen               = 2
+	Pawn                = 3
+	Bishop              = 4
+	Knight              = 5
+	Rook                = 6
 )
 
 var NewGamePosition = Board{{WhiteRook, WhiteKnight, WhiteBishop, WhiteQueen, WhiteKing, WhiteBishop, WhiteKnight, WhiteRook},
@@ -55,8 +87,14 @@ var NewGamePosition = Board{{WhiteRook, WhiteKnight, WhiteBishop, WhiteQueen, Wh
 	{BlackPawn, BlackPawn, BlackPawn, BlackPawn, BlackPawn, BlackPawn, BlackPawn, BlackPawn},
 	{BlackRook, BlackKnight, BlackBishop, BlackQueen, BlackKing, BlackBishop, BlackKnight, BlackRook}}
 
+// abs gets the absolute value of an 8-bit integer.
+func abs(x int8) int8 {
+	var sb = x >> 7
+	return (x ^ sb) + (sb & 1)
+}
+
 // GetColor returns the color of a piece - 0 for black, 1 for white, 2 for empty
-func (p Piece) getColor() uint8 {
+func (p Piece) getColor() Color {
 	if p == Empty {
 		return colorEmpty
 	} else if 0 < p && p <= 6 {
@@ -66,10 +104,11 @@ func (p Piece) getColor() uint8 {
 	}
 }
 
-// abs gets the absolute value of an 8-bit integer.
-func abs(x int8) int8 {
-	var sb = x >> 7
-	return (x ^ sb) + (sb & 1)
+func (p Piece) getType() PieceType {
+	if p == Empty {
+		return EmptyType
+	}
+	return ((p - 1) % 6) + 1
 }
 
 // NewMove creates a new Move object describing a valid chess move.
@@ -191,11 +230,239 @@ func NewMove(p Piece, srcCol int8, srcRow int8, destCol int8, destRow int8) (*Mo
 	}, nil
 }
 
+func (b *Board) threatens(src *coords, dst *coords) bool {
+	p := b[src.row][src.col]
+	switch p {
+	case WhiteKing:
+		fallthrough
+	case BlackKing:
+		vDist := abs(src.row - dst.row)
+		hDist := abs(src.col - dst.col)
+		if hDist <= 1 && vDist <= 1 {
+			return true
+		}
+
+	case WhiteQueen:
+		fallthrough
+	case BlackQueen:
+		// Same row or column?
+		if dst.row == src.row {
+			// same row - is it blocked?
+			if dst.col < src.col {
+				for i := dst.col + 1; i < src.col; i++ {
+					if b[dst.row][i] != Empty {
+						return false
+					}
+				}
+			} else {
+				for i := src.col + 1; i < dst.col; i++ {
+					if b[dst.row][i] != Empty {
+						return false
+					}
+				}
+			}
+			return true
+		}
+		if dst.col == src.col {
+			if dst.row < src.row {
+				for i := dst.row + 1; i < src.row; i++ {
+					if b[i][dst.col] != Empty {
+						return false
+					}
+				}
+			} else {
+				for i := src.row + 1; i < dst.row; i++ {
+					if b[i][dst.col] != Empty {
+						return false
+					}
+				}
+			}
+			return true
+		}
+		// Diagonal?
+		vDiff := src.row - dst.row
+		hDiff := src.col - dst.col
+		switch {
+		case vDiff > 0 && vDiff == hDiff:
+			// i.e. src.row > dst.row src.col > dst.col
+			for i := 1; i < vDiff; i++ {
+				if b[dst.row+i][dst.col+i] != Empty {
+					return false
+				}
+			}
+			return true
+		case vDiff < 0 && vDiff == hDiff:
+			// i.e. src.row < dst.row src.col < dst.col
+			for i := -1; i > vDiff; i-- {
+				if b[dst.row+i][dst.col+i] != Empty {
+					return false
+				}
+			}
+			return true
+		case vDiff > 0 && vDiff == -hDiff:
+			// src.row > dst.row src.col < dst.col
+			for i := 1; i < vDiff; i++ {
+				if b[dst.row+i][dst.col-i] != Empty {
+					return false
+				}
+			}
+			return true
+		case vDiff < 0 && vDiff == -hDiff:
+			// i.e. src.row < dst.row src.col > dst.col
+			for i := -1; i > vDiff; i-- {
+				if b[dst.row-i][dst.col+i] != Empty {
+					return false
+				}
+			}
+			return true
+		}
+
+	case WhitePawn:
+		if dst.row == src.row+1 && abs(dst.col-src.col) == 1 {
+			return true
+		}
+	case BlackPawn:
+		if dst.row == src.row-1 && abs(dst.col-src.col) == 1 {
+			return true
+		}
+
+	case WhiteBishop:
+		fallthrough
+	case BlackBishop:
+		vDiff := src.row - dst.row
+		hDiff := src.col - dst.col
+		switch {
+		case vDiff > 0 && vDiff == hDiff:
+			// i.e. src.row > dst.row src.col > dst.col
+			for i := 1; i < vDiff; i++ {
+				if b[dst.row+i][dst.col+i] != Empty {
+					return false
+				}
+			}
+			return true
+		case vDiff < 0 && vDiff == hDiff:
+			// i.e. src.row < dst.row src.col < dst.col
+			for i := -1; i > vDiff; i-- {
+				if b[dst.row+i][dst.col+i] != Empty {
+					return false
+				}
+			}
+			return true
+		case vDiff > 0 && vDiff == -hDiff:
+			// src.row > dst.row src.col < dst.col
+			for i := 1; i < vDiff; i++ {
+				if b[dst.row+i][dst.col-i] != Empty {
+					return false
+				}
+			}
+			return true
+		case vDiff < 0 && vDiff == -hDiff:
+			// i.e. src.row < dst.row src.col > dst.col
+			for i := -1; i > vDiff; i-- {
+				if b[dst.row-i][dst.col+i] != Empty {
+					return false
+				}
+			}
+			return true
+
+		}
+
+	case WhiteKnight:
+		fallthrough
+	case BlackKnight:
+		vDist := abs(src.row - dst.row)
+		hDist := abs(src.col - dst.col)
+		if (vDist == 2 && hDist == 1) || (vDist == 1 && hDist == 2) {
+			return true
+		}
+
+	case WhiteRook:
+		fallthrough
+	case BlackRook:
+		if dst.row == src.row {
+			// same row - is it blocked?
+			if dst.col < src.col {
+				for i := dst.col + 1; i < src.col; i++ {
+					if b[dst.row][i] != Empty {
+						break
+					}
+				}
+			} else {
+				for i := src.col + 1; i < dst.col; i++ {
+					if b[dst.row][i] != Empty {
+						break
+					}
+				}
+			}
+			return true
+		}
+		if dst.col == src.col {
+			if dst.row < src.row {
+				for i := dst.row + 1; i < src.row; i++ {
+					if b[i][dst.col] != Empty {
+						break
+					}
+				}
+			} else {
+				for i := src.row + 1; i < dst.row; i++ {
+					if b[i][dst.col] != Empty {
+						break
+					}
+				}
+			}
+			return true
+		}
+	}
+	return false
+}
+
 // DetermineCheck determines whether a position on a board is in check or not.
 // Returns a color value of the color in check.
-func (b *Board) DetermineCheck() uint8 {
-	// TODO
-	return 0
+func (b *Board) DetermineCheck() CheckState {
+	// there has to be a better way to do this
+	var wKingSquare coords
+	var bKingSquare coords
+
+	whiteChecked := false
+	blackChecked := false
+
+	// this seems kinda unnecessary - maybe store king coords in game object?
+	for i, row := range b {
+		for j, square := range row {
+			if square == WhiteKing {
+				wKingSquare = coords{col: j, row: i}
+			}
+			if square == BlackKing {
+				bKingSquare = coords{col: j, row: i}
+			}
+		}
+	}
+
+	for i, row := range b {
+		for j, piece := range row {
+			if piece == Empty || piece.getType() == King {
+				continue
+			}
+			pCoords := coords{col: j, row: i}
+			if piece.getColor() == colorBlack {
+				if b.threatens(pCoords, wKingSquare) {
+					whiteChecked = true
+				}
+			} else {
+				if b.threatens(pCoords, bKingSquare) {
+					blackChecked = true
+				}
+			}
+		}
+	}
+
+	if whiteChecked {
+		return WhiteChecked
+	}
+	if blackChecked {
+		return BlackChecked
+	}
+	return NoCheck
 }
 
 // IsLegal determines whether a move is legal to do given a certain game context.
