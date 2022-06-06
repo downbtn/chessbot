@@ -465,30 +465,28 @@ func (b *Board) DetermineCheck() CheckState {
 	return NoCheck
 }
 
-// IsLegal determines whether a move is legal to do given a certain game context.
-func (m *Move) IsLegal(b *Board) bool {
-	playerColor := m.piece.getColor()
-	if b[m.srcRow][m.srcCol] != m.piece {
-		return false // we can't move a piece that doesn't exist
-	}
-	if b[m.destRow][m.destCol].getColor() == m.piece.getColor() && (!m.castle) {
-		return false // we can't take our own piece unless the move is representing a castle
-	}
-	if m.pawnTaking && b[m.destRow][m.destCol].getColor() != (m.piece.getColor()^1) {
-		return false // there is no piece of the other color to take
-		// TODO: en passant doesn't work yet :P
-	}
-
-	// After all the other checks determine if the position after the move is a check
-	newBoard := *b
-	newBoard.doMove(m)
-	if newBoard.DetermineCheck() == playerColor {
-		return false // we can't put ourself in check!
-	}
-	return true
-}
-
 func (b *Board) doMove(m *Move) {
-	b[m.srcRow][m.srcCol] = Empty
-	b[m.destRow][m.destCol] = m.piece
+	if m.castle {
+		// queenside i.e. destCol == 0 or kingside i.e. destCol == 7?
+		if m.destCol == 0 {
+			// castle queenside
+			// king col 4 -> 2
+			// rook col 0 -> 3
+			b[m.srcRow][3] = b[m.destRow][m.destCol]
+			b[m.srcRow][4] = Empty
+			b[m.srcRow][0] = Empty
+			b[m.srcRow][2] = m.piece
+		} else if m.destCol == 7 {
+			// castle kingside
+			// king col 4 -> 6
+			// rook col 7 -> 5
+			b[m.srcRow][5] = b[m.destRow][m.destCol]
+			b[m.srcRow][6] = m.piece
+			b[m.srcRow][4] = Empty
+			b[m.srcRow][7] = Empty
+		}
+	} else {
+		b[m.srcRow][m.srcCol] = Empty
+		b[m.destRow][m.destCol] = m.piece
+	}
 }
