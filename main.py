@@ -3,7 +3,7 @@ import discord
 from discord import app_commands
 from datetime import timedelta, timezone, datetime
 
-import secret
+import config
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -12,7 +12,7 @@ tree = app_commands.CommandTree(client)
 
 
 """Ping the bot and get latency"""
-@tree.command(name="ping", description="Ping the bot", guilds=secret.guilds)
+@tree.command(name="ping", description="Ping the bot", guilds=config.guilds)
 async def ping(interaction) -> None:
     old_timestamp = interaction.created_at
     new_timestamp = datetime.now(timezone.utc)
@@ -23,9 +23,9 @@ async def ping(interaction) -> None:
 @client.event
 async def on_ready():
     # Sync slash commands to whitelisted guilds
-    for guild in secret.guilds:
+    for guild in config.guilds:
         await tree.sync(guild=guild)
     print("Logged in as", client.user)
 
 
-client.run(secret.token)
+client.run(config.TOKEN)
