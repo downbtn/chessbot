@@ -35,7 +35,7 @@ class Game():
         self.p_black = black_player
         self.board = chess.Board()
 
-    def render(board, of: str) -> None:
+    def render(self, of: str) -> None:
         # TODO: verify of is valid path
         with Image.open(IMG_TEMPLATE) as img:
             img.load()
@@ -49,52 +49,67 @@ class Game():
                         continue
                     if current_piece.piece_type == chess.KNIGHT:
                         # Check for knight
+                        # Knight sprite dimensions are 62x70, therefore we need
+                        # offset 14 on x and 10 on y to center
                         if current_piece.color == chess.BLACK:
                             with Image.open(IMG_BN) as sprite:
-                                img.paste(sprite, (90*row, 90*col))
+                                img.paste(sprite, (90*col + 14, 90*row + 10), sprite)
                         elif current_piece.color == chess.WHITE:
                             with Image.open(IMG_WN) as sprite:
-                                img.paste(sprite, (90*row, 90*col))
+                                img.paste(sprite, (90*col + 14, 90*row + 10), sprite)
                     elif current_piece.piece_type == chess.KING:
                         # Check for king
+                        # King sprite has dimensions 77x78
+                        # Need offset 6, 6 to center
                         if current_piece.color == chess.BLACK:
                             with Image.open(IMG_BK) as sprite:
-                                img.paste(sprite, (90*row, 90*col))
+                                img.paste(sprite, (90*col + 6, 90*row + 6), sprite)
                         elif current_piece.color == chess.WHITE:
                             with Image.open(IMG_WK) as sprite:
-                                img.paste(sprite, (90*row, 90*col))
+                                img.paste(sprite, (90*col + 6, 90*row + 6), sprite)
                     elif current_piece.piece_type == chess.BISHOP:
                         # Check for bishop
+                        # Bishop sprite is 72x73
+                        # Need offset 9, 9 to center
                         if current_piece.color == chess.BLACK:
                             with Image.open(IMG_BB) as sprite:
-                                img.paste(sprite, (90*row, 90*col))
+                                img.paste(sprite, (90*col + 9, 90*row + 9), sprite)
                         elif current_piece.color == chess.WHITE:
                             with Image.open(IMG_WB) as sprite:
-                                img.paste(sprite, (90*row, 90*col))
+                                img.paste(sprite, (90*col + 9, 90*row + 9), sprite)
                     elif current_piece.piece_type == chess.ROOK:
                         # Check for rook
+                        # Rook sprite is 60x66
+                        # Need offset 15, 12 to center
                         if current_piece.color == chess.BLACK:
                             with Image.open(IMG_BR) as sprite:
-                                img.paste(sprite, (90*row, 90*col))
+                                img.paste(sprite, (90*col + 15, 90*row + 12), sprite)
                         elif current_piece.color == chess.WHITE:
                             with Image.open(IMG_WR) as sprite:
-                                img.paste(sprite, (90*row, 90*col))
+                                img.paste(sprite, (90*col + 15, 90*row + 12), sprite)
                     elif current_piece.piece_type == chess.QUEEN:
                         # Check for queen
+                        # Queen sprite is 77x70
+                        # Need offset 7, 10 to center
                         if current_piece.color == chess.BLACK:
                             with Image.open(IMG_BQ) as sprite:
-                                img.paste(sprite, (90*row, 90*col))
+                                img.paste(sprite, (90*col + 7, 90*row + 10), sprite)
                         elif current_piece.color == chess.WHITE:
                             with Image.open(IMG_WQ) as sprite:
-                                img.paste(sprite, (90*row, 90*col))
+                                img.paste(sprite, (90*col + 7, 90*row + 10), sprite)
                     elif current_piece.piece_type == chess.PAWN:
                         # Check for pawn
+                        # Pawn sprite is 48x59
+                        # Needs an offset of 21, 16 to center
                         if current_piece.color == chess.BLACK:
                             with Image.open(IMG_BP) as sprite:
-                                img.paste(sprite, (90*row, 90*col))
+                                img.paste(sprite, (90*col + 21, 90*row + 16), sprite)
                         elif current_piece.color == chess.WHITE:
                             with Image.open(IMG_WP) as sprite:
-                                img.paste(sprite, (90*row, 90*col))
+                                img.paste(sprite, (90*col + 21, 90*row + 16), sprite)
+
+            img.save(of)
+
 
 
     def move(self, move: chess.Move):
