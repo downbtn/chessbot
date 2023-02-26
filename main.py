@@ -17,7 +17,10 @@ async def ping(interaction) -> None:
     old_timestamp = interaction.created_at
     new_timestamp = datetime.now(timezone.utc)
     diff_ms = int((new_timestamp - old_timestamp) / timedelta(milliseconds=1))
-    await interaction.response.send_message(f"pong {diff_ms}ms :ping_pong:")
+    embed = discord.Embed(title="Pong!",
+                          description=f"{diff_ms}ms :ping_pong:",
+                          color=discord.Colour.random())
+    await interaction.response.send_message(embed=embed)
 
 
 @client.event
